@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Tracking System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <h1>Vehicle Tracking System</h1>
+    
+    <div class="form-container">
+        <h2>Register Vehicle</h2>
+        <form id="registerForm" method="POST" action="http://localhost:8080/vehicles/register">
+            <input type="text" id="licensePlate" name="licensePlate" placeholder="License Plate" required>
+            <input type="text" id="owner" name="owner" placeholder="Owner Name" required>
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+    <h2>Registered Vehicles</h2>
+    <button id="fetchVehicles">Load Vehicles</button>
+    <ul id="vehicleList"></ul>
+
+    <h2>Map View</h2>
+    <div id="map" style="height: 400px;"></div>
+
+    <script src="script.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</body>
+</html>
+
+
+
