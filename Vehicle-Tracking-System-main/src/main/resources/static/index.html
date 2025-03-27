@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Tracking System</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css"> <!-- Link to the external CSS file -->
+</head>
+<body>
+    <h1>Vehicle Tracking System</h1>
+
+    <div class="page" id="loginPage">
+        <div class="form-container">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <p>Don't have an account? <a href="#" onclick="showRegister()">Register</a></p>
+        </div>
+    </div>
+
+    <div class="page" id="registerPage" style="display:none;">
+        <div class="form-container">
+            <h2>Register Vehicle</h2>
+            <input type="text" id="vehicleOwner" placeholder="Vehicle Owner Name">
+            <input type="text" id="vehicleModel" placeholder="Vehicle Model">
+            <input type="text" id="vehiclePlate" placeholder="Vehicle Plate Number">
+            <input type="text" id="vehicleLat" placeholder="Latitude">
+            <input type="text" id="vehicleLng" placeholder="Longitude">
+            <button onclick="registerVehicle()">Register</button>
+            <button onclick="showLogin()">Back to Login</button>
+        </div>
+    </div>
+
+    <div class="page" id="dashboardPage" style="display:none;">
+        <div id="map"></div>
+        
+        <div class="vehicle-actions">
+            <button onclick="showRegisterVehicle()">Register New Vehicle</button>
+            <button onclick="viewRegisteredVehicles()">View Registered Vehicles</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="page" id="vehiclesPage" style="display:none;">
+        <h2>Registered Vehicles</h2>
+        <ul id="vehicleList"></ul>
+        <button onclick="backToDashboard()">Back to Dashboard</button>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    
+    <script>
+        // Simulated database of vehicles and users
+        let users = [
+            { username: 'admin', password: 'password' }
+        ];
+        let vehicles = [];
+        let currentUser    = null;
+
+        // Map initialization
+        let map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Function to show current location
+        function showCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 13); // Zoom in to the user's location
+                    L.marker([lat, lng]).addTo(map).bindPopup("You are here!").openPopup();
+                }, () => {
+                    alert("Geolocation service failed.");
+                });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Navigation Functions
+        function showLogin() {
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('registerPage').style.display = 'none';
+            document.getElementById('dashboardPage').style.display = 'none';
+            document.getElementById('vehiclesPage').style.display = 'none';
+        }
+
+        function showRegister() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('registerPage').style.display = 'flex';
+            document.getElementById('dashboardPage').style.display = 'none';
+            document.getElementById('vehiclesPage').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('registerPage').style.display = 'none';
+            document.getElementById('dashboardPage').style.display = 'flex';
+            document.getElementById('vehiclesPage').style.display = 'none';
+            showCurrentLocation(); // Show current location when dashboard is displayed
+        }
+
+        function showRegisterVehicle() {
+            document.getElementById('registerPage').style.display = 'flex';
+            document.getElementById('dashboardPage').style.display = 'none';
+        }
+
+        function backToDashboard() {
+            showDashboard();
+        }
+
+        // Authentication Functions
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                currentUser    = user;
+                showDashboard();
+                updateMap();
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        function logout() {
+            currentUser    = null;
+            showLogin();
+        }
+
+        function registerVehicle() {
+            const owner = document.getElementById('vehicleOwner').value;
+            const model = document.getElementById('vehicleModel').value;
+            const plate = document.getElementById('vehiclePlate').value;
+            const lat = parseFloat(document.getElementById('vehicleLat').value);
+            const lng = parseFloat(document.getElementById('vehicleLng').value);
+
+            if (owner && model && plate && !isNaN(lat) && !isNaN(lng)) {
+                const newVehicle = {
+                    owner: owner,
+                    model: model,
+                    plate: plate,
+                    location: { lat: lat, lng: lng }
+                };
+                vehicles.push(newVehicle);
+                updateMap();
+                showDashboard();
+                alert('Vehicle registered successfully!');
+            } else {
+                alert('Please fill in all fields with valid data');
+            }
+        }
+
+        function viewRegisteredVehicles() {
+            const vehicleList = document.getElementById('vehicleList');
+            vehicleList.innerHTML = '';
+
+            vehicles.forEach(vehicle => {
+                const li = document.createElement('li');
+                li.textContent = `Owner: ${vehicle.owner}, Model: ${vehicle.model}, Plate: ${vehicle.plate}`;
+                vehicleList.appendChild(li);
+            });
+
+            document.getElementById('dashboardPage').style.display = 'none';
+            document.getElementById('vehiclesPage').style.display = 'flex';
+
+            // Show vehicle locations on the map
+            updateMap();
+        }
+
+        // Utility Functions
+        function updateMap() {
+            // Clear existing markers
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Add markers for each vehicle
+            vehicles.forEach(vehicle => {
+                L.marker([vehicle.location.lat, vehicle.location.lng])
+                 .addTo(map)
+                 .bindPopup(`${vehicle.owner}'s ${vehicle.model} (${vehicle.plate})`);
+            });
+
+            // If vehicles exist, center the map on the first vehicle
+            if (vehicles.length > 0) {
+                map.setView([vehicles[0].location.lat, vehicles[0].location.lng], 4);
+            }
+        }
+
+        // Initialize to login page
+        showLogin();
+    </script>
+</body>
+</html>
+
+
